@@ -73,7 +73,7 @@ ${attendString}
 `;
 
       // AI에게 글쓰기 시키기
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const result = await model.generateContent(prompt);
       const text = result.response.text();
 
