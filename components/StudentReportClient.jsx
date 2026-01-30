@@ -1,355 +1,166 @@
-// components/StudentReportClient.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  User, 
-  Calendar, 
-  BookOpen, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  MessageSquare,
-  BarChart3,
-  TrendingUp
-} from 'lucide-react';
 
-export default function StudentReportClient({ reportData }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('report');
+export default function StudentReportClient({ studentId }) {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setIsVisible(true);
-  }, []);
+    // 1. API에서 데이터 가져오기
+    fetch(`/api/reports/${studentId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('레포트를 찾을 수 없습니다.');
+        return res.json();
+      })
+      .then((data) => {
+        setReport(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [studentId]);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'completed':
-        return (
-          <span className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
-            완료
-          </span>
-        );
-      case 'in-progress':
-        return (
-          <span className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full">
-            진행중
-          </span>
-        );
-      default:
-        return (
-          <span className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-full">
-            진행 예정
-          </span>
-        );
-    }
-  };
+  // 2. 로딩 중일 때 화면
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">데이터를 불러오는 중입니다...</p>
+      </div>
+    </div>
+  );
 
-  const getScoreColor = (score) => {
-    if (score >= 90) return 'bg-green-500';
-    if (score >= 80) return 'bg-blue-500';
-    if (score >= 70) return 'bg-yellow-500';
-    if (score >= 60) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
+  // 3. 에러 났을 때 화면
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+        <div className="text-red-500 text-5xl mb-4">⚠️</div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">오류 발생</h2>
+        <p className="text-gray-600">{error}</p>
+      </div>
+    </div>
+  );
 
-  const renderBarChart = (scores, title) => {
-    if (!scores || scores.length === 0) {
-      return (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-center">{title} 데이터가 없습니다.</p>
+  // 4. 레포트 화면 (성공!)
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        
+        {/* 상단 헤더 (제목) */}
+        <div className="bg-indigo-600 px-8 py-10 text-white text-center">
+          <h1 className="text-3xl font-bold mb-2">{report.studentName} 학생</h1>
+          <p className="text-indigo-100 text-lg">{report.reportMonth} 학습 분석 리포트</p>
         </div>
-      );
-    }
 
-    const maxScore = 100;
+        <div className="p-8 space-y-8">
+          
+          {/* 1. 학습 요약 */}
+          <section>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-2">📝</span>
+              학습 요약
+            </h2>
+            <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {report.summary}
+              </p>
+            </div>
+          </section>
 
-    return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-800 mb-6">{title}</h3>
-        <div className="space-y-4">
-          {scores.map((item, index) => (
-            <div key={item.id || index} className="space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 font-medium">{item.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-xs">평균 {item.avgScore}점</span>
-                  <span className="font-bold text-gray-800">{item.score}점</span>
-                  {item.rank && (
-                    <span className="text-xs text-blue-600 font-medium">({item.rank}등)</span>
-                  )}
-                </div>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-6 relative overflow-hidden">
-                <div
-                  className={`h-6 rounded-full ${getScoreColor(item.score)} transition-all duration-1000 ease-out`}
-                  style={{ width: `${(item.score / maxScore) * 100}%` }}
-                >
-                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
-                    {item.score}점
+          {/* 2. 선생님 코멘트 (수정한 부분!) */}
+          <section>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="bg-red-100 text-red-600 p-2 rounded-lg mr-2">💬</span>
+              선생님 코멘트
+            </h2>
+            <div className="bg-red-50 rounded-xl p-6 shadow-sm border border-red-100">
+              {/* 제목 변경: 담당 선생님 -> 만티가 드리는 말씀 */}
+              <p className="text-sm text-red-600 font-medium mb-2">만티가 드리는 말씀</p>
+              
+              {/* 줄바꿈 적용: whitespace-pre-wrap 추가 */}
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {report.teacherComment}
+              </p>
+            </div>
+          </section>
+
+          {/* 3. 진도 현황 */}
+          <section>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="bg-green-100 text-green-600 p-2 rounded-lg mr-2">📚</span>
+              진도 현황
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {report.progress.map((item, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                  <span className="font-medium text-gray-700">{item.subject}</span>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium
+                    ${item.status === 'completed' ? 'bg-blue-100 text-blue-700' : 
+                      item.status === 'in-progress' ? 'bg-green-100 text-green-700' : 
+                      'bg-gray-100 text-gray-600'}`}>
+                    {item.status === 'completed' ? '완료' : 
+                     item.status === 'in-progress' ? '진행중' : '예정'}
                   </span>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+          </section>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* 헤더 */}
-      <header className="bg-gradient-to-r from-red-600 to-red-500 text-white py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <h1 
-            className={`text-2xl md:text-3xl font-bold text-center mb-4 transition-all duration-700 ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
-            }`}
-          >
-            {reportData.reportMonth?.split('-')[0]}년 {reportData.reportMonth?.split('-')[1]}월 학습 보고서 - 만티반
-          </h1>
-          <div 
-            className={`flex flex-wrap justify-center gap-4 md:gap-8 text-sm md:text-base transition-all duration-700 delay-200 ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <User size={18} />
-              <span>{reportData.studentName}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar size={18} />
-              <span>{reportData.period}</span>
-            </div>
-            <div className="flex items-center gap-2">
-  <BookOpen size={18} />
-  {/* 출석 + 지각 + 조퇴 + 보강 횟수를 모두 더해서 보여줌 */}
-  <span>총 {
-    (reportData.attendance?.attend || 0) +
-    (reportData.attendance?.late || 0) +
-    (reportData.attendance?.earlyLeave || 0) +
-    (reportData.attendance?.makeup || 0)
-  }회 수업</span>
-</div>
-          </div>
-        </div>
-      </header>
-
-      {/* 탭 네비게이션 */}
-      <div className="max-w-4xl mx-auto px-4 pt-6">
-        <div className="flex gap-2 bg-white rounded-xl p-2 shadow-sm border border-gray-100">
-          <button
-            onClick={() => setActiveTab('report')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
-              activeTab === 'report'
-                ? 'bg-red-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <BookOpen size={18} />
-            학습 보고서
-          </button>
-          <button
-            onClick={() => setActiveTab('monthly')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
-              activeTab === 'monthly'
-                ? 'bg-red-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <BarChart3 size={18} />
-            월말평가
-          </button>
-          <button
-            onClick={() => setActiveTab('weekly')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
-              activeTab === 'weekly'
-                ? 'bg-red-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <TrendingUp size={18} />
-            주간평가
-          </button>
-        </div>
-      </div>
-
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        
-        {/* 학습 보고서 탭 */}
-        {activeTab === 'report' && (
-          <>
-            {/* 학습 요약 */}
-            <section 
-              className={`transition-all duration-700 delay-300 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <h2 className="flex items-center gap-2 text-xl font-bold text-red-600 mb-4">
-                <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-                <BookOpen size={20} />
-                학습 요약
-              </h2>
-              <div className="bg-red-50 rounded-xl p-6 shadow-sm border border-red-100">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {reportData.summary || '학습 요약이 아직 작성되지 않았습니다.'}
-                </p>
-              </div>
-            </section>
-
-            {/* 진도 현황 */}
-            <section 
-              className={`transition-all duration-700 delay-400 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <h2 className="flex items-center gap-2 text-xl font-bold text-red-600 mb-4">
-                <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-                <CheckCircle size={20} />
-                진도 현황
-              </h2>
-              <div className="space-y-3">
-                {reportData.progress && reportData.progress.length > 0 ? (
-                  reportData.progress.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center"
-                    >
-                      <div>
-                        <h3 className="font-semibold text-gray-800">{item.subject}</h3>
-                        {item.description && (
-                          <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                        )}
-                      </div>
-                      {getStatusBadge(item.status)}
-                    </div>
-                  ))
-                ) : (
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-gray-500">진도 현황이 아직 작성되지 않았습니다.</p>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* 과제 수행 현황 */}
-            <section 
-              className={`transition-all duration-700 delay-500 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <h2 className="flex items-center gap-2 text-xl font-bold text-red-600 mb-4">
-                <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-                <Clock size={20} />
-                과제 수행 현황
-              </h2>
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex justify-around items-center">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-green-600">{reportData.homework?.submit || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">제출</p>
-                  </div>
-                  <div className="w-px h-12 bg-gray-200"></div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-red-600">{reportData.homework?.notSubmit || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">미제출</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 선생님 코멘트 */}
-            <section 
-              className={`transition-all duration-700 delay-600 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <h2 className="flex items-center gap-2 text-xl font-bold text-red-600 mb-4">
-                <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-                <MessageSquare size={20} />
-                선생님 코멘트
-              </h2>
-              <div className="bg-red-50 rounded-xl p-6 shadow-sm border border-red-100">
-                <p className="text-sm text-red-600 font-medium mb-2">담당 선생님</p>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {reportData.teacherComment || '코멘트가 아직 작성되지 않았습니다.'}
-                </p>
-              </div>
-            </section>
-
-            {/* 출결 현황 */}
-            <section 
-              className={`transition-all duration-700 delay-700 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <h2 className="flex items-center gap-2 text-xl font-bold text-red-600 mb-4">
-                <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-                <AlertCircle size={20} />
+          {/* 4. 출결 및 과제 */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 출결 */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <span className="bg-yellow-100 text-yellow-600 p-2 rounded-lg mr-2">⏰</span>
                 출결 현황
               </h2>
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="grid grid-cols-5 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-green-600">{reportData.attendance?.attend || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">출석</p>
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{report.attendance.attend}</div>
+                    <div className="text-xs text-gray-500">출석</div>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-yellow-600">{reportData.attendance?.late || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">지각</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-orange-600">{reportData.attendance?.earlyLeave || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">조퇴</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-red-600">{reportData.attendance?.absent || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">결석</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-blue-600">{reportData.attendance?.makeup || 0}회</p>
-                    <p className="text-sm text-gray-500 mt-1">보강</p>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-2xl font-bold text-red-500">{report.attendance.late + report.attendance.absent}</div>
+                    <div className="text-xs text-gray-500">지각/결석</div>
                   </div>
                 </div>
               </div>
-            </section>
-          </>
-        )}
+            </div>
 
-        {/* 월말평가 탭 */}
-        {activeTab === 'monthly' && (
-          <section className="space-y-6">
-            <h2 className="flex items-center gap-2 text-xl font-bold text-red-600">
-              <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-              <BarChart3 size={20} />
-              월말평가 성적
-            </h2>
-            {renderBarChart(reportData.scores?.monthly, '월말평가 점수')}
+            {/* 과제 */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <span className="bg-purple-100 text-purple-600 p-2 rounded-lg mr-2">✏️</span>
+                과제 수행
+              </h2>
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600">제출률</span>
+                  <span className="font-bold text-indigo-600">
+                    {Math.round((report.homework.submit / (report.homework.submit + report.homework.notSubmit || 1)) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
+                    style={{ width: `${(report.homework.submit / (report.homework.submit + report.homework.notSubmit || 1)) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="mt-4 flex justify-between text-sm text-gray-500">
+                  <span>제출 {report.homework.submit}회</span>
+                  <span>미제출 {report.homework.notSubmit}회</span>
+                </div>
+              </div>
+            </div>
           </section>
-        )}
 
-        {/* 주간평가 탭 */}
-        {activeTab === 'weekly' && (
-          <section className="space-y-6">
-            <h2 className="flex items-center gap-2 text-xl font-bold text-red-600">
-              <span className="w-1 h-6 bg-red-600 rounded-full"></span>
-              <TrendingUp size={20} />
-              주간평가 성적
-            </h2>
-            {renderBarChart(reportData.scores?.weekly, '주간평가 점수')}
-          </section>
-        )}
-
-      </main>
-
-      {/* 푸터 */}
-      <footer className="bg-gray-800 text-gray-400 py-6 px-4 mt-12">
-        <div className="max-w-4xl mx-auto text-center text-sm">
-          <p>© 2026 오르라수학전문학원. All rights reserved.</p>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
