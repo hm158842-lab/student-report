@@ -97,6 +97,9 @@ export default function StudentReportClient({ reportData }) {
     );
   };
 
+  // 총 출석 횟수 계산
+  const totalAttendance = reportData.attendance?.attend || 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* 헤더 */}
@@ -107,7 +110,7 @@ export default function StudentReportClient({ reportData }) {
               isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
             }`}
           >
-            {reportData.reportMonth?.split('-')[0]}년 {reportData.reportMonth?.split('-')[1]}월 학습 보고서
+            {reportData.reportMonth?.split('-')[0]}년 {reportData.reportMonth?.split('-')[1]}월 학습 보고서 - 만티반
           </h1>
           <div 
             className={`flex flex-wrap justify-center gap-4 md:gap-8 text-sm md:text-base transition-all duration-700 delay-200 ${
@@ -124,7 +127,7 @@ export default function StudentReportClient({ reportData }) {
             </div>
             <div className="flex items-center gap-2">
               <BookOpen size={18} />
-              <span>총 {reportData.totalClasses}회 수업</span>
+              <span>총 출석 {totalAttendance}회</span>
             </div>
           </div>
         </div>
@@ -266,7 +269,7 @@ export default function StudentReportClient({ reportData }) {
                 선생님 코멘트
               </h2>
               <div className="bg-red-50 rounded-xl p-6 shadow-sm border border-red-100">
-                <p className="text-sm text-red-600 font-medium mb-2">만티가 드리는 말씀</p>
+                <p className="text-sm text-red-600 font-medium mb-2">담당 선생님</p>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                   {reportData.teacherComment || '코멘트가 아직 작성되지 않았습니다.'}
                 </p>
